@@ -14,7 +14,7 @@ export async function authenticateToken(
   next: NextFunction
 ) {
   // Authentication
-  const authHeader = req.headers['authorization'];
+  const authHeader = req.headers.authorization;
   const jwtToken = authHeader?.split(' ')[1];
  
   if (!jwtToken) {
@@ -25,20 +25,18 @@ export async function authenticateToken(
     const payload = (await jwt.verify(jwtToken, JWT_SECRET)) as {
       tokenId: number;
     };
-
-    const dbToken = await prisma.token.findUnique({
-      where: { id: payload.tokenId },
+    
+    const dbToken = await prisma.token.findFirst({
+      where: { userId: payload.tokenId },
       include: { user: true },
+      orderBy: { createdAt: 'desc' }
     });
-
-    console.log(dbToken)
 
     if (!dbToken || !dbToken.expiration) {
       return res.status(401).json({ error: 'API token expired' });
     }
 
     const expirationTime = new Date(dbToken?.expiration);
-    console.log(new Date())
 
     if (expirationTime < new Date()) {
       console.log('expired')

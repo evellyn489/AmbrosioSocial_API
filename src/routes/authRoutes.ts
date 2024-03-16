@@ -3,8 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
-const EMAIL_TOKEN_EXPIRATION_MINUTES = 10;
-const AUTHENTICATION_EXPIRATION_HOURS = 12;
+const EXPIRATION_TIME = 24 * 60 * 60;
 const JWT_SECRET = process.env.JWT_SECRET || 'SUPER SECRET';
 
 const router = Router();
@@ -19,7 +18,7 @@ function generateAuthToken(tokenId: number): string {
 
   return jwt.sign(jwtPayload, JWT_SECRET, {
     algorithm: 'HS256',
-    expiresIn: '1h'
+    expiresIn: EXPIRATION_TIME
   });
 }
 
@@ -32,12 +31,14 @@ router.post('/login', async (req, res) => {
     if (!user || !await bcrypt.compare(password, user.password)) {
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
+
+    const expirationTime = 24 * 60 * 60 * 1000;
     
     const authToken = generateAuthToken(user.id);
     await prisma.token.create({
       data: {
         type: 'API',
-        expiration: new Date(Date.now() + 3600000),
+        expiration: new Date(Date.now() + expirationTime),
         userId: user.id,
       },
     });

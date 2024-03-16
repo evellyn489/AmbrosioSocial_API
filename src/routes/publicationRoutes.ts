@@ -9,10 +9,9 @@ const prisma = new PrismaClient();
 // Create Publication
 router.post('/', async (req, res) => {
   const { content, image } = req.body;
+  console.log(content, image)
   // @ts-ignore
   const user = req.user;
-  console.log(user)
-
   try {
     const result = await prisma.publication.create({
       data: {
