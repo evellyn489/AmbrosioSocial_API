@@ -31,6 +31,10 @@ router.post('/', async (req, res) => {
 // list Publication
 router.get('/', async (req, res) => {
   const allTweets = await prisma.publication.findMany({
+    orderBy: {
+      createdAt: 'desc'
+    },
+    
     include: {
       user: {
         select: {
