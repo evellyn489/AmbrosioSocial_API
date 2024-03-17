@@ -1,20 +1,12 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
+import { authenticateToken } from '../middlewares/authMiddleware';
 
 const router = Router();
 const prisma = new PrismaClient();
 
 // User CRUD
-
-/*
-  Test with curl:
-
-  curl -X POST -H "Content-Type: application/json" \
-       -d '{"name": "Elon Musk", "email": "doge@twitter.com", "birthDate": "04/11/2003", "gender": "Masculino", "password": "senha123@A", "visibility": "public"}' \
-       http://localhost:3000/user/
-
-*/
 
 async function hashPassword(password: string): Promise<string> {
   const saltRounds = 10;
@@ -62,25 +54,85 @@ router.get('/', async (req, res) => {
   res.json(allUser);
 });
 
-// get one user
+router.get('/search', authenticateToken ,async (req, res) => {
+  const searchTerm: string = req.query.searchTerm as string;
+  
+  try {
+
+    const users = await prisma.user.findMany({
+      where: {
+        OR: [
+          { name: { contains: searchTerm.toLowerCase() } },
+        ],
+      },
+    });
+
+    res.json(users);
+  } catch (error) {
+    console.error('Erro ao pesquisar usuários:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+router.get('/:userId/publications', authenticateToken, async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const userPublications = await prisma.publication.findMany({
+      where: {
+        userId: parseInt(userId),
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    res.json(userPublications);
+  } catch (error) {
+    console.error('Erro ao buscar publicações do usuário:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
 router.get('/:id', async (req, res) => {
   const { id } = req.params;
+
   const user = await prisma.user.findUnique({
-    where: { id: Number(id) },
+    where: { id: parseInt(id, 10) },
     include: { tweets: true },
   });
 
   res.json(user);
 });
 
-/*
-  Test with curl:
+router.get('/:userId', authenticateToken ,async (req, res) => {
+  const userId = req.params.userId;
 
-  curl -X PUT -H "Content-Type: application/json" \
-       -d '{"name": "Vadim", "bio": "Hello there!"}' \
-       http://localhost:3000/user/1
+  try {
+    const userProfile = await prisma.user.findUnique({
+      where: { id: parseInt(userId) },
+      select: { id: true, name: true, email: true }
+    });
 
-*/
+    if (!userProfile) {
+      return res.status(404).json({ error: 'Perfil de usuário não encontrado' });
+    }
+
+    res.json(userProfile);
+  } catch (error) {
+    console.error('Erro ao buscar o perfil do usuário:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
 // update user
 router.put('/:id', async (req, res) => {
   const { id } = req.params;
@@ -97,7 +149,6 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// curl -X DELETE http://localhost:3000/user/6
 // delete user
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
