@@ -17,6 +17,6 @@ app.use('/publication', authenticateToken, publicationRoutes);
 app.use('/auth', authRoutes);
 app.use('/follow', authenticateToken, followRoutes);
 
-app.listen(3000, () => {
-  console.log('Server ready at localhost:3000');
+app.listen({
+  port: process.env.PORT ? Number(process.env.PORT) : 3333
 });
