@@ -13,23 +13,16 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const bcrypt_1 = __importDefault(require("bcrypt"));
+const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const client_1 = require("@prisma/client");
+const authMiddleware_1 = require("../middlewares/authMiddleware");
 const router = (0, express_1.Router)();
 const prisma = new client_1.PrismaClient();
 // User CRUD
-/*
-  Test with curl:
-
-  curl -X POST -H "Content-Type: application/json" \
-       -d '{"name": "Elon Musk", "email": "doge@twitter.com", "birthDate": "04/11/2003", "gender": "Masculino", "password: "senha123@A", "visibility": "public"}' \
-       http://localhost:3000/user/
-
-*/
 function hashPassword(password) {
     return __awaiter(this, void 0, void 0, function* () {
         const saltRounds = 10;
-        const hashedPassword = yield bcrypt_1.default.hash(password, saltRounds);
+        const hashedPassword = yield bcryptjs_1.default.hash(password, saltRounds);
         return hashedPassword;
     });
 }
@@ -48,10 +41,11 @@ router.post('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 visibility
             },
         });
+        console.log(result);
         res.json(result);
     }
     catch (e) {
-        res.status(400).json({ error: 'Username and email should be unique' });
+        res.status(400).json({ error: 'Error' });
     }
 }));
 // list users
@@ -66,23 +60,74 @@ router.get('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     });
     res.json(allUser);
 }));
-// get one user
+router.get('/search', authMiddleware_1.authenticateToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const searchTerm = req.query.searchTerm;
+    try {
+        const users = yield prisma.user.findMany({
+            where: {
+                OR: [
+                    { name: { contains: searchTerm.toLowerCase() } },
+                ],
+            },
+        });
+        res.json(users);
+    }
+    catch (error) {
+        console.error('Erro ao pesquisar usuários:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+}));
+router.get('/:userId/publications', authMiddleware_1.authenticateToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { userId } = req.params;
+    try {
+        const userPublications = yield prisma.publication.findMany({
+            where: {
+                userId: parseInt(userId),
+            },
+            orderBy: {
+                createdAt: 'desc'
+            },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+            },
+        });
+        res.json(userPublications);
+    }
+    catch (error) {
+        console.error('Erro ao buscar publicações do usuário:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+}));
 router.get('/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
     const user = yield prisma.user.findUnique({
-        where: { id: Number(id) },
+        where: { id: parseInt(id, 10) },
         include: { tweets: true },
     });
     res.json(user);
 }));
-/*
-  Test with curl:
-
-  curl -X PUT -H "Content-Type: application/json" \
-       -d '{"name": "Vadim", "bio": "Hello there!"}' \
-       http://localhost:3000/user/1
-
-*/
+router.get('/:userId', authMiddleware_1.authenticateToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const userId = req.params.userId;
+    try {
+        const userProfile = yield prisma.user.findUnique({
+            where: { id: parseInt(userId) },
+            select: { id: true, name: true, email: true }
+        });
+        if (!userProfile) {
+            return res.status(404).json({ error: 'Perfil de usuário não encontrado' });
+        }
+        res.json(userProfile);
+    }
+    catch (error) {
+        console.error('Erro ao buscar o perfil do usuário:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+}));
 // update user
 router.put('/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
@@ -98,7 +143,6 @@ router.put('/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         res.status(400).json({ error: `Failed to update the user` });
     }
 }));
-// curl -X DELETE http://localhost:3000/user/6
 // delete user
 router.delete('/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;

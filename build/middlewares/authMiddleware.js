@@ -20,19 +20,24 @@ const prisma = new client_1.PrismaClient();
 function authenticateToken(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         // Authentication
-        const authHeader = req.headers['authorization'];
+        const authHeader = req.headers.authorization;
         const jwtToken = authHeader === null || authHeader === void 0 ? void 0 : authHeader.split(' ')[1];
         if (!jwtToken) {
             return res.sendStatus(401);
         }
-        // decode the jwt token
         try {
             const payload = (yield jsonwebtoken_1.default.verify(jwtToken, JWT_SECRET));
-            const dbToken = yield prisma.token.findUnique({
-                where: { id: payload.tokenId },
+            const dbToken = yield prisma.token.findFirst({
+                where: { userId: payload.tokenId },
                 include: { user: true },
+                orderBy: { createdAt: 'desc' }
             });
-            if (!(dbToken === null || dbToken === void 0 ? void 0 : dbToken.valid) || dbToken.expiration < new Date()) {
+            if (!dbToken || !dbToken.expiration) {
+                return res.status(401).json({ error: 'API token expired' });
+            }
+            const expirationTime = new Date(dbToken === null || dbToken === void 0 ? void 0 : dbToken.expiration);
+            if (expirationTime < new Date()) {
+                console.log('expired');
                 return res.status(401).json({ error: 'API token expired' });
             }
             req.user = dbToken.user;
