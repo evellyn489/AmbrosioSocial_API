@@ -9,8 +9,7 @@ import { authenticateToken } from './middlewares/authMiddleware';
 export const app = express();
 app.use(express.json());
 app.use(cors({
-  origin: "https://ambrosio-social.vercel.app/",
-  credentials: true
+  origin: ["*"],
 }));
 
 app.use('/user', userRoutes);
