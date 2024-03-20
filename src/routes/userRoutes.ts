@@ -56,13 +56,15 @@ router.get('/', async (req, res) => {
 
 router.get('/search', authenticateToken ,async (req, res) => {
   const searchTerm: string = req.query.searchTerm as string;
-  
+  console.log(searchTerm.toLowerCase())
   try {
 
     const users = await prisma.user.findMany({
       where: {
         OR: [
-          { name: { contains: searchTerm.toLowerCase() } },
+          { name: { contains: searchTerm, mode: 'insensitive' } },
+          { name: { contains: searchTerm.toUpperCase(), mode: 'insensitive' } },
+          { name: { contains: searchTerm.toLowerCase(), mode: 'insensitive' } },
         ],
       },
     });
