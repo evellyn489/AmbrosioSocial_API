@@ -20,6 +20,9 @@ exports.app.use('/user', userRoutes_1.default);
 exports.app.use('/publication', authMiddleware_1.authenticateToken, publicationRoutes_1.default);
 exports.app.use('/auth', authRoutes_1.default);
 exports.app.use('/follow', authMiddleware_1.authenticateToken, followRoutes_1.default);
-exports.app.listen(3000, () => {
-    console.log('Server ready at localhost:3000');
+exports.app.listen({
+    host: '0.0.0',
+    port: process.env.PORT ? Number(process.env.PORT) : 3333,
+}, () => {
+    console.log("HTTP server running");
 });
