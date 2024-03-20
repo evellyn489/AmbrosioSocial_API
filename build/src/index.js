@@ -22,7 +22,7 @@ exports.app.use('/auth', authRoutes_1.default);
 exports.app.use('/follow', authMiddleware_1.authenticateToken, followRoutes_1.default);
 exports.app.listen({
     host: '0.0.0.0',
-    port: process.env.PORT ? Number(process.env.PORT) : 3333,
+    port: process.env.PORT ? Number(process.env.PORT) : 3002,
 }, () => {
     console.log("HTTP server running");
 });
