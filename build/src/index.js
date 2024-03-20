@@ -21,7 +21,7 @@ exports.app.use('/publication', authMiddleware_1.authenticateToken, publicationR
 exports.app.use('/auth', authRoutes_1.default);
 exports.app.use('/follow', authMiddleware_1.authenticateToken, followRoutes_1.default);
 exports.app.listen({
-    host: '0.0.0',
+    host: '0.0.0.0',
     port: process.env.PORT ? Number(process.env.PORT) : 3333,
 }, () => {
     console.log("HTTP server running");
