@@ -1,0 +1,17 @@
+version: '3.9'
+
+services:
+ db:
+    image: postgres:latest
+    restart: always
+    environment:
+      POSTGRES_DB: ambrosio-social_db
+      POSTGRES_USER: ambrosio-social_user
+      POSTGRES_PASSWORD: ambrosio-social_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+ postgres_data:
